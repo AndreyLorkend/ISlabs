@@ -8,8 +8,10 @@ enum BtnOnClickEvent
 	CLOSE,
 	FILL_ARRAY,
 	HANDLE_DATA,
-	ENCODE,
-	DECODE
+	ENCODE_POLYBIUS,
+	DECODE_POLYBIUS,
+	ENCODE_GOST,
+	DECODE_GOST
 };
 
 class Button : public WinElement

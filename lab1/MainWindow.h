@@ -35,10 +35,16 @@ private:
 	DWORD fdwMode;
 	INPUT_RECORD irInBuf[INPUT_RECORD_BUFFER];
 	bool isExitFlagSet;
-	std::unordered_set<unsigned char> asciiTable;
-	std::unordered_set<unsigned char> keySet;
+	std::unordered_set< char> asciiTable;
+	std::unordered_set< char> keySet;
+
+	gost_key_t gostKey{};
+	gost_iv_t gostIV{};
+
+	std::string filenameIn;
+	std::string filenameOut;
 private:
-	int getIndex(std::unordered_set<unsigned char> S, unsigned char K);
+	int getIndex(std::unordered_set< char> S,  char K);
 	void fillArray();
 	void fillAsciiTable();
 	void generateKey();
@@ -55,8 +61,19 @@ public:
 	void setExitFlag(bool flag);
 	void printArray(COORD textCoord);
 	void handleArrayData(COORD outCoord);
-	void encode();
-	void decode();
+	// first lab
+	void encodePolybius();
+	void decodePolybius();
+	// second lab
+	void encodeGOST(const gost_key_t& key, const gost_iv_t& iv, const std::string& filename_in, const std::string& filename_out);
+	void decodeGOST(const gost_key_t& key, const gost_iv_t& iv, const std::string& filename_in, const std::string& filename_out);
+
+	gost_key_t getGostKey();
+	gost_iv_t getGostIV();
+
+	std::string getFilenameIn();
+	std::string getFileNameOut();
+
 	void Show();
 };
 

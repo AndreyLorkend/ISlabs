@@ -1,7 +1,7 @@
 #include "MainWindow.h"
 #include <fstream>
 
-int MainWindow::getIndex(std::unordered_set<unsigned char> S, unsigned char K)
+int MainWindow::getIndex(std::unordered_set< char> S,  char K)
 {
     int index = 0;
     for (auto u : S) {
@@ -24,16 +24,41 @@ void MainWindow::fillAsciiTable()
 {
     srand(12476);
     while (asciiTable.size() < 256) {
-        unsigned char symbol = rand() % 256;
+         char symbol = rand() % 256;
         asciiTable.insert(symbol);
     }
+    std::unordered_set< char>::iterator startSymbol = asciiTable.begin();
+    std::unordered_set< char>::iterator endSymbol = asciiTable.end();
+
+    //int i = 0;
+    //for (startSymbol; startSymbol != endSymbol;) {
+    //    if (i < 16) {
+    //        std::cout << *startSymbol;
+    //        i++;
+    //        startSymbol++;
+    //    }
+    //    else {
+    //        std::cout << "\n";
+    //        i = 0;
+    //    }
+    //}
+
+    //std::cout << "\n\n";
+
+    //for (int i = 0; i < 256; i++) {
+    //    if (i % 16 != 0) {
+    //        std::cout << (char)i;
+    //    } else {
+    //        std::cout << (char)i << "\n";
+    //    }
+    //}
 }
 
 void MainWindow::generateKey()
 {
     srand(124369);
     while (keySet.size() < 16) {
-        unsigned char symbol = rand() % 256;
+        char symbol = rand() % 256;
         keySet.insert(symbol);
     }
 }
@@ -46,6 +71,13 @@ MainWindow::MainWindow()
     fdwMode = 0;
     fillAsciiTable();
     generateKey();
+
+    CryptoPP::AutoSeededRandomPool rng{};
+    rng.GenerateBlock(gostKey.data(), gostKey.size());
+    rng.GenerateBlock(gostIV.data(), gostIV.size());
+
+    filenameIn = "otchet.pdf";
+    filenameOut = "encoded_otcher.bin";
 }
 
 void MainWindow::printArray(COORD outCoord)
@@ -201,16 +233,16 @@ void MainWindow::handleArrayData(COORD outCoord)
     textLines.clear();
 }
 
-void MainWindow::encode()
+void MainWindow::encodePolybius()
 {
     std::fstream dataFile("data.bin", std::ios_base::in | std::ios_base::binary);
     std::fstream writeFile("encoded.bin", std::ios::binary | std::ios::out);
     char temp;
     int column = 0;
     int row = 0;
-    unsigned char rowSymbol;
-    unsigned char columnSymbol;
-    std::unordered_set<unsigned char>::iterator curentSymbol = keySet.begin();
+    char rowSymbol;
+    char columnSymbol;
+    std::unordered_set<char>::iterator curentSymbol = keySet.begin();
 
     for (auto c : keySet) {
         std::cout << c;
@@ -218,16 +250,20 @@ void MainWindow::encode()
 
     std::cout << "\n";
 
-    while (dataFile.read(&temp, sizeof(unsigned char))) {
-        column = getIndex(asciiTable, temp) % 16;
-        row = getIndex(asciiTable, temp) / 16;
 
-       std::unordered_set<unsigned char>::iterator ch = keySet.find(*curentSymbol);
+    while (dataFile.read(&temp, sizeof( char))) {
+        column = getIndex(asciiTable, static_cast<char>(temp)) % 16;
+        row = getIndex(asciiTable, static_cast<char>(temp)) >> 4;
+
+        //std::cout << row << " " << column << " : " << getIndex(asciiTable, temp) << "\n";
+
+       std::unordered_set<char>::iterator ch = keySet.find(*curentSymbol);
        for (int i = 0; i < row; i++) {
            ch++;
        }
-       unsigned char c = *ch;
-       std::cout << c;
+
+       char c = *ch;
+       /*std::cout << c;*/
        writeFile.write((char*)&c, sizeof(char));
 
        ch = keySet.find(*curentSymbol);
@@ -235,34 +271,108 @@ void MainWindow::encode()
            ch++;
        }
        c = *ch;
-       std::cout << c;
+       /*std::cout << c;*/
        writeFile.write((char*)&c, sizeof(char));
     }
+
+    std::cout << "\n";
+
     dataFile.close();
     writeFile.close();
     
 }
 
-void MainWindow::decode()
+void MainWindow::decodePolybius()
 {
     char temp[2];
     int column = 0;
     int row = 0;
     int index = 0;
 
-    std::unordered_set<unsigned char>::iterator startSymbol = asciiTable.begin();
+    std::unordered_set<char>::iterator startSymbol = asciiTable.begin();
 
     std::fstream dataFile("encoded.bin", std::ios_base::in | std::ios_base::binary);
-    while (dataFile.read(temp, 2*sizeof(unsigned char))) {
-        row = getIndex(keySet, temp[0]) / 16;
-        column = getIndex(keySet, temp[1]) % 16;
-        index = (row * 16) + column;
-        std::unordered_set<unsigned char>::iterator ch = asciiTable.find(*startSymbol);
+    std::fstream writeFile("decoded.bin", std::ios::binary | std::ios::out);
+
+    while (dataFile.read(temp, 2*sizeof(char))) {
+        row = getIndex(keySet, static_cast< char>(temp[0]));
+        column = getIndex(keySet, static_cast< char>(temp[1]));
+
+        if (row == 1) {
+            row--;
+        }
+
+        if (column == 0) {
+            column++;
+        }
+
+        index = (row * 16) + (column);
+
+        std::unordered_set< char>::iterator ch = asciiTable.find(*startSymbol);
         for (int i = 0; i < index; i++) {
             ch++;
         }
-        std::cout << *(ch);
+
+        //std::cout << row << " " << column << " : " << index << "\n";
+        /*std::cout << (char)*ch;*/
+        writeFile.write((char*)&ch, sizeof(char));
     }
+    dataFile.close();
+    writeFile.close();
+}
+
+void MainWindow::encodeGOST(const gost_key_t& key, const gost_iv_t& iv, const std::string& filename_in, const std::string& filename_out)
+{
+    CryptoPP::CFB_Mode<CryptoPP::GOST>::Encryption cipher{};
+    cipher.SetKeyWithIV(key.data(), key.size(), iv.data());
+    std::cout << key.data() << std::endl;
+    std::cout << iv.data() << std::endl;
+
+    std::ifstream in{ filename_in, std::ios::binary };
+    std::ofstream out{ filename_out, std::ios::binary };
+
+    CryptoPP::FileSource{ in, /*pumpAll=*/true,
+                         new CryptoPP::StreamTransformationFilter{
+                             cipher, new CryptoPP::FileSink{out}} };
+    filenameIn = "encoded_otcher.bin";
+    filenameOut = "decoded_otchet.pdf";
+    in.close();
+    out.close();
+}
+
+void MainWindow::decodeGOST(const gost_key_t& key, const gost_iv_t& iv, const std::string& filename_in, const std::string& filename_out)
+{
+    CryptoPP::CFB_Mode<CryptoPP::GOST>::Decryption cipher{};
+    cipher.SetKeyWithIV(key.data(), key.size(), iv.data());
+
+    std::ifstream in{ filename_in, std::ios::binary };
+    std::ofstream out{ filename_out, std::ios::binary };
+
+    CryptoPP::FileSource{ in, /*pumpAll=*/true,
+                         new CryptoPP::StreamTransformationFilter{
+                             cipher, new CryptoPP::FileSink{out}} };
+    in.close();
+    out.close();
+}
+
+gost_key_t MainWindow::getGostKey()
+{
+    return gostKey;
+}
+
+gost_iv_t MainWindow::getGostIV()
+{
+    return gostIV;
+}
+
+std::string MainWindow::getFilenameIn()
+{
+    return filenameIn;
+}
+
+std::string MainWindow::getFileNameOut()
+{
+    return filenameOut;
 }
 
 void MainWindow::Show()
@@ -296,8 +406,12 @@ void MainWindow::CreateElements()
     //BUTTON_BOX
     winBoxes.insert(std::pair<std::string, WinBox*>("BUTTON_BOX_1", new WinBox(COORD(1, 17))));
     //winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Show data", SHOW_DATA));
-    winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Encode file", ENCODE));
-    winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Decode file", DECODE));
+    winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Encode by PolybiusSquare", ENCODE_POLYBIUS));
+    winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Decode by PolybiusSquare", DECODE_POLYBIUS));
+
+    winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Encode by GOST", ENCODE_GOST));
+    winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Decode by GOST", DECODE_GOST));
+
     winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Close", CLOSE));
     //winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Fill array", FILL_ARRAY));
     //winBoxes["BUTTON_BOX_1"]->addElementWidthHorizontalAlignment(new Button(1, "Handle data", HANDLE_DATA));

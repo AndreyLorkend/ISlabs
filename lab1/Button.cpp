@@ -29,11 +29,19 @@ void Button::onClick(MOUSE_EVENT_RECORD& mer, Window* sender)
 		case HANDLE_DATA:
 			sender->handleArrayData(COORD(2, 10));
 			break;
-		case ENCODE:
-			sender->encode();
+		case ENCODE_POLYBIUS:
+			sender->encodePolybius();
 			break;
-		case DECODE:
-			sender->decode();
+		case DECODE_POLYBIUS:
+			sender->decodePolybius();
+			break;
+		case ENCODE_GOST:
+		{
+			sender->encodeGOST(sender->getGostKey(), sender->getGostIV(), sender->getFilenameIn(), sender->getFileNameOut());
+			break;
+		}
+		case DECODE_GOST:
+			sender->decodeGOST(sender->getGostKey(), sender->getGostIV(), sender->getFilenameIn(), sender->getFileNameOut());
 			break;
 		default:
 			break;
