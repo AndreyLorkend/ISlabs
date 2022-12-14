@@ -43,6 +43,12 @@ void Button::onClick(MOUSE_EVENT_RECORD& mer, Window* sender)
 		case DECODE_GOST:
 			sender->decodeGOST(sender->getGostKey(), sender->getGostIV(), sender->getFilenameIn(), sender->getFileNameOut());
 			break;
+		case ENCODE_LAB3:
+			sender->encodeGenerator();
+			break;
+		case DECODE_LAB3:
+			sender->decodeGenerator();
+			break;
 		default:
 			break;
 		}

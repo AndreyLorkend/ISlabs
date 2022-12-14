@@ -3,8 +3,8 @@
 
 int main(VOID)
 {
-    SetConsoleCP(866);
-    SetConsoleOutputCP(866);
+    SetConsoleCP(1152);
+    SetConsoleOutputCP(1152);
     setlocale(LC_ALL, "ru");
     MainWindow mainWin;
     mainWin.Show();

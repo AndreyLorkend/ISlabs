@@ -11,7 +11,9 @@ enum BtnOnClickEvent
 	ENCODE_POLYBIUS,
 	DECODE_POLYBIUS,
 	ENCODE_GOST,
-	DECODE_GOST
+	DECODE_GOST,
+	ENCODE_LAB3,
+	DECODE_LAB3
 };
 
 class Button : public WinElement

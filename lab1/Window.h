@@ -26,6 +26,9 @@ public:
 	virtual gost_key_t getGostKey() = 0;
 	virtual gost_iv_t getGostIV() = 0;
 
+	virtual void encodeGenerator() = 0;
+	virtual void decodeGenerator() = 0;
+
 	virtual std::string getFilenameIn() = 0;
 	virtual std::string getFileNameOut() = 0;
 
